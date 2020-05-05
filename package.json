@@ -1,10 +1,69 @@
 {
-  "name": "root",
-  "private": true,
+  "name": "ethereumjs-vm",
+  "version": "4.2.0",
+  "description": "An Ethereum VM implementation",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "ethereumjs-config-build",
+    "prepublishOnly": "npm run lint && npm run build && npm run test:buildIntegrity",
+    "coverage": "nyc npm run coverage:test && nyc report --reporter=lcov",
+    "coverage:test": "npm run build && tape './tests/api/**/*.js' ./tests/tester.js --state --dist",
+    "docs:build": "typedoc lib",
+    "test:vm": "node ./tests/tester --vm",
+    "test:state": "ts-node ./tests/tester --state",
+    "test:state:allForks": "npm run test:state -- --fork=Byzantium && npm run test:state -- --fork=Constantinople && npm run test:state -- --fork=Petersburg && npm run test:state -- --fork=Istanbul && npm run test:state -- --fork=MuirGlacier",
+    "test:state:selectedForks": "npm run test:state -- --fork=Petersburg && npm run test:state -- --fork=Istanbul && npm run test:state -- --fork=MuirGlacier",
+    "test:state:slow": "npm run test:state -- --runSkipped=slow",
+    "test:buildIntegrity": "npm run test:state -- --test='stackOverflow'",
+    "test:blockchain": "node -r ts-node/register --stack-size=1500 ./tests/tester --blockchain",
+    "test:API": "npm run build && ts-node ./node_modules/tape/bin/tape './tests/api/**/*.js'",
+    "test:API:browser": "npm run build && karma start karma.conf.js",
+    "test:prepare": "./scripts/test-prepare.sh && lerna bootstrap --ignore-scripts",
+    "test": "echo \"[INFO] Generic test cmd not used. See package.json for more specific test run cmds.\"",
+    "tslint": "ethereumjs-config-tslint",
+    "tslint:fix": "ethereumjs-config-tslint-fix",
+    "lint": "ethereumjs-config-lint",
+    "lint:fix": "ethereumjs-config-lint-fix",
+    "format": "ethereumjs-config-format",
+    "format:fix": "ethereumjs-config-format-fix",
+    "formatTest": "node ./scripts/formatTest",
+    "tsc": "ethereumjs-config-tsc"
+  },
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run lint"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ethereumjs/ethereumjs-vm.git"
+  },
+  "keywords": [
+    "ethereum",
+    "VM"
+  ],
+  "dependencies": {
+    "async": "^2.1.2",
+    "async-eventemitter": "^0.2.2",
+    "core-js-pure": "^3.0.1",
+    "ethereumjs-account": "^3.0.0",
+    "ethereumjs-block": "^2.2.2",
+    "ethereumjs-blockchain": "^4.0.3",
+    "ethereumjs-common": "^1.5.0",
+    "ethereumjs-tx": "^2.1.2",
+    "ethereumjs-util": "^6.2.0",
+    "fake-merkle-patricia-tree": "^1.0.1",
+    "functional-red-black-tree": "^1.0.1",
+    "merkle-patricia-tree": "^2.3.2",
+    "rustbn.js": "~0.2.0",
+    "safe-buffer": "^5.1.1",
+    "util.promisify": "^1.0.0"
+  },
   "devDependencies": {
     "lerna": "^3.20.2"
-  },
-  "scripts": {
-    "test:prepare": "./scripts/test-prepare.sh && lerna bootstrap --ignore-scripts"
   }
 }
