@@ -100,9 +100,14 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
    */
   await this._emit('beforeTx', tx)
 
+  console.log('VM TX:')
+  console.log(tx)
+
   // Validate gas limit against base fee
   const basefee = tx.getBaseFee()
   const gasLimit = new BN(tx.gasLimit)
+  // const basefee = new BN(999999999)
+  // const gasLimit = new BN(9)
   if (gasLimit.lt(basefee)) {
     throw new Error('base fee exceeds gas limit')
   }
