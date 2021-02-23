@@ -11,6 +11,7 @@ import { EVMResult, ExecResult } from './evm/evm'
 import { OpcodeList, getOpcodesForHF } from './evm/opcodes'
 import runBlockchain from './runBlockchain'
 import PStateManager from './state/promisified'
+const argv = require('minimist')(process.argv.slice(2))
 const promisify = require('util.promisify')
 const AsyncEventEmitter = require('async-eventemitter')
 const Trie = require('merkle-patricia-tree/secure.js')
@@ -91,6 +92,9 @@ export default class VM extends AsyncEventEmitter {
   constructor(opts: VMOpts = {}) {
     super()
 
+    console.log('ARGV IS')
+    console.log(argv)
+
     this.opts = opts
 
     if (opts.common) {
@@ -116,7 +120,11 @@ export default class VM extends AsyncEventEmitter {
     }
 
     this.useExperimentalOpcodes =
-      opts.useExperimentalOpcodes === undefined ? true : opts.useExperimentalOpcodes
+      opts.useExperimentalOpcodes === undefined ? false : opts.useExperimentalOpcodes
+
+    if (argv.useExperimentalOpcodes !== undefined) {
+      this.useExperimentalOpcodes = argv.useExperimentalOpcodes
+    }
 
     // Set list of opcodes based on HF
     this._opcodes = getOpcodesForHF(this._common, this.useExperimentalOpcodes)
