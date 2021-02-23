@@ -92,9 +92,6 @@ export default class VM extends AsyncEventEmitter {
   constructor(opts: VMOpts = {}) {
     super()
 
-    console.log('ARGV IS')
-    console.log(argv)
-
     this.opts = opts
 
     if (opts.common) {
