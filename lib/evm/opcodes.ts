@@ -188,7 +188,6 @@ function addExperimentalOpcodes() {
 export function getOpcodesForHF(common: Common, useExperimentalOpcodes: Boolean) {
   if (common.gteHardfork('istanbul')) {
     useExperimentalOpcodes && addExperimentalOpcodes()
-    console.log(istanbulOpcodes)
     return { ...opcodes, ...istanbulOpcodes }
   } else {
     return { ...opcodes }
