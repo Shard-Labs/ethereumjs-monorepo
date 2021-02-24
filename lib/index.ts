@@ -11,6 +11,7 @@ import { EVMResult, ExecResult } from './evm/evm'
 import { OpcodeList, getOpcodesForHF } from './evm/opcodes'
 import runBlockchain from './runBlockchain'
 import PStateManager from './state/promisified'
+const argv = require('minimist')(process.argv.slice(2))
 const promisify = require('util.promisify')
 const AsyncEventEmitter = require('async-eventemitter')
 const Trie = require('merkle-patricia-tree/secure.js')
@@ -55,6 +56,10 @@ export interface VMOpts {
    * Allows unlimited contract sizes while debugging. By setting this to `true`, the check for contract size limit of 24KB (see [EIP-170](https://git.io/vxZkK)) is bypassed
    */
   allowUnlimitedContractSize?: boolean
+  /**
+   * Use opcodes that are not yet implemented (BALANCE, EXTCODEHASH, SLOAD)
+   */
+  useExperimentalOpcodes?: boolean
   common?: Common
 }
 
@@ -70,6 +75,7 @@ export default class VM extends AsyncEventEmitter {
   stateManager: StateManager
   blockchain: Blockchain
   allowUnlimitedContractSize: boolean
+  useExperimentalOpcodes: boolean
   _opcodes: OpcodeList
   public readonly _emit: (topic: string, data: any) => Promise<void>
   public readonly pStateManager: PStateManager
@@ -81,6 +87,7 @@ export default class VM extends AsyncEventEmitter {
    *  - `hardfork`: 'petersburg' [supported: 'byzantium', 'constantinople', 'petersburg', 'istanbul' (DRAFT) (will throw on unsupported)]
    *  - `activatePrecompiles`: false
    *  - `allowUnlimitedContractSize`: false [ONLY set to `true` during debugging]
+   *  - `useExperimentalOpcodes`: false [ONLY set to `true` when testing with all opcodes]
    */
   constructor(opts: VMOpts = {}) {
     super()
@@ -109,8 +116,15 @@ export default class VM extends AsyncEventEmitter {
       this._common = new Common(chain, hardfork, supportedHardforks)
     }
 
+    this.useExperimentalOpcodes =
+      opts.useExperimentalOpcodes === undefined ? false : opts.useExperimentalOpcodes
+
+    if (argv.useExperimentalOpcodes !== undefined) {
+      this.useExperimentalOpcodes = argv.useExperimentalOpcodes
+    }
+
     // Set list of opcodes based on HF
-    this._opcodes = getOpcodesForHF(this._common)
+    this._opcodes = getOpcodesForHF(this._common, this.useExperimentalOpcodes)
 
     if (opts.stateManager) {
       this.stateManager = opts.stateManager
