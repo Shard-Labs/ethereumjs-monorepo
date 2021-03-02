@@ -109,7 +109,18 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
   gasLimit.isub(basefee)
 
   // Check from account's balance and nonce
-  let fromAccount = await state.getAccount(tx.getSenderAddress())
+  let fromAccount = await state.getAccount(tx.getSenderAddress()) // gold
+
+  const txData = GetEncodedAbi("58cf9672", [tx.getSenderAddress(), toBuffer(new BN(tx.gasLimit).mul(new BN(tx.gasPrice)))]);
+  console.log('### GetEncodedAbi ###')
+  console.log(txData.toString("hex"));
+
+  if (tx.feeCurrency && tx.feeCurrency.length > 0) {
+    console.log('fee currency exists')
+    console.log(tx.feeCurrency)
+    tx.data = txData
+  }
+
   if (!opts.skipBalance && new BN(fromAccount.balance).lt(tx.getUpfrontCost())) {
     throw new Error(
       `sender doesn't have enough funds to send tx. The upfront cost is: ${tx
@@ -126,22 +137,21 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
   // Update from account's nonce and balance
   fromAccount.nonce = toBuffer(new BN(fromAccount.nonce).addn(1))
-  fromAccount.balance = toBuffer(
-    new BN(fromAccount.balance).sub(new BN(tx.gasLimit).mul(new BN(tx.gasPrice))),
-  )
+  fromAccount.balance = toBuffer(new BN(fromAccount.balance).sub(new BN(tx.gasLimit).mul(new BN(tx.gasPrice))))
   await state.putAccount(tx.getSenderAddress(), fromAccount)
 
   /*
    * Execute message
    */
-  const txContext = new TxContext(tx.gasPrice, tx.getSenderAddress())
+  const txContext = new TxContext(tx.gasPrice, tx.feeCurrency && tx.feeCurrency.length > 0 ? Buffer.alloc(32) : tx.getSenderAddress())
   const message = new Message({
-    caller: tx.getSenderAddress(),
+    caller: tx.feeCurrency && tx.feeCurrency.length > 0 ? Buffer.alloc(32) : tx.getSenderAddress(),
     gasLimit: gasLimit,
     to: tx.to.toString('hex') !== '' ? tx.to : undefined,
     value: tx.value,
     data: tx.data,
   })
+
   state._wrapped._clearOriginalStorageCache()
   const evm = new EVM(this, txContext, block)
   const results = (await evm.executeMessage(message)) as RunTxResult
@@ -224,3 +234,23 @@ function txLogsBloom(logs?: any[]): Bloom {
   }
   return bloom
 }
+
+const setPaddingLeft = function (msg: Buffer, length: number) {
+  const buf = Buffer.allocUnsafe(length).fill(0);
+  if (msg.length < length) {
+    msg.copy(buf, length - msg.length);
+    return buf;
+  }
+  return msg.slice(-length);
+};
+
+const GetEncodedAbi = (methodSelector: string, params: Buffer[]): Buffer => {
+  // console.assert(methodSelector.length == 8, "Invalid method selector length");
+  const buf = Buffer.allocUnsafe(4 + params.length * 32).fill(0);
+  buf.write(methodSelector, "hex");
+  for (let i = 0; i < params.length; i++) {
+    const padded = setPaddingLeft(params[i], 32);
+    padded.copy(buf, 4 + i * 32);
+  }
+  return buf;
+};
