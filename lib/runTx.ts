@@ -136,11 +136,29 @@ async function _runTx(this: VM, opts: RunTxOpts): Promise<RunTxResult> {
   }
 
   let feeVal = new BN(tx.gasLimit).mul(new BN(tx.gasPrice))
+  let gasPrice = new BN(tx.gasPrice)
   let gasUsed = new BN(0)
+
+  if (this.minimumGasPrice && gasPrice.gt(new BN(0)) && gasPrice.lt(new BN(this.minimumGasPrice))) {
+    throw new Error('gas price for TX is smaller than the minimum gas price')
+  }
 
   // pay fees
   if (tx.feeCurrency && tx.feeCurrency.length > 0) {
     // TODO (important): check the balance and error out if there arent enough funds
+    const balanceOpts = {
+      to: tx.feeCurrency,
+      caller: zeros(32), // call as root
+      data: getEncodedAbi("70a08231", [tx.getSenderAddress()]),
+      gasLimit: toBuffer(gasLimit),
+      gasPrice: tx.gasPrice
+    }
+    const balanceResult = await this.runCall(balanceOpts); // value in wei
+
+    // Ensure that tx is not a call
+    if (new BN(tx.value).gt(new BN(0)) && new BN(balanceResult.execResult.returnValue).lt(feeVal)) {
+        throw new Error('not enough funds to pay transaction fee')
+    }
 
     // call debitGasFees
     const opts = {

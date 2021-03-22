@@ -60,6 +60,10 @@ export interface VMOpts {
    * Use opcodes that are not yet implemented (BALANCE, EXTCODEHASH, SLOAD)
    */
   useExperimentalOpcodes?: boolean
+  /**
+   * Sets the minimum gas price for sending transactions. In production, this value is obtained through the MinimumGasPrice contract as it can change.
+   */
+  minimumGasPrice?: boolean
   common?: Common
 }
 
@@ -76,6 +80,7 @@ export default class VM extends AsyncEventEmitter {
   blockchain: Blockchain
   allowUnlimitedContractSize: boolean
   useExperimentalOpcodes: boolean
+  minimumGasPrice: number
   _opcodes: OpcodeList
   public readonly _emit: (topic: string, data: any) => Promise<void>
   public readonly pStateManager: PStateManager
@@ -88,6 +93,7 @@ export default class VM extends AsyncEventEmitter {
    *  - `activatePrecompiles`: false
    *  - `allowUnlimitedContractSize`: false [ONLY set to `true` during debugging]
    *  - `useExperimentalOpcodes`: false [ONLY set to `true` when testing with all opcodes]
+   *  - `minimumGasPrice`: 100000000
    */
   constructor(opts: VMOpts = {}) {
     super()
@@ -121,6 +127,11 @@ export default class VM extends AsyncEventEmitter {
 
     if (argv.useExperimentalOpcodes !== undefined) {
       this.useExperimentalOpcodes = argv.useExperimentalOpcodes
+    }
+
+    this.minimumGasPrice = 100000000;
+    if (argv.minimumGasPrice !== undefined) {
+      this.minimumGasPrice = argv.minimumGasPrice
     }
 
     // Set list of opcodes based on HF
